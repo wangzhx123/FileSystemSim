@@ -171,6 +171,10 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\bitmaps.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\block.cpp"
 				>
 			</File>
@@ -190,12 +194,20 @@
 				RelativePath=".\namei.cpp"
 				>
 			</File>
+			<File
+				RelativePath=".\namei2.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Í·ÎÄ¼þ"
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
+			<File
+				RelativePath=".\bitmaps.h"
+				>
+			</File>
 			<File
 				RelativePath=".\block.h"
 				>

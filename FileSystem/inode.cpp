@@ -6,7 +6,9 @@ CInode::CInode(void)
 	this->i_num = 0;
 	this->i_size = 0;
 	this->i_nlinks = 0;
-	this->i_zone[0] = 0;
+	for (int i = 0; i < 9; i++) {
+		this->i_zone[i] = 0;
+	}
 }
 
 CInode::~CInode(void)

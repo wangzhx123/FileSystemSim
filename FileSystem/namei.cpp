@@ -144,7 +144,7 @@ int CNamei::find_file(CFileSystem& fs, string file_name, int dir_base_inode) {
 	// 如果没有找到
 	return 0;
 }
-// 在dir_inode对应的目录项中注册一个文件，该文件内容为空（也就是i_zone[0]为0）。返回建好的文件的inode号，失败返回0
+// 在dir_inode对应的目录项中注册一个文件（新建），该文件内容为空（也就是i_zone[0]为0）。返回建好的文件的inode号，失败返回0
 // 而且，这里打开的模式相当于是“truncate”
 int CNamei::open_file(CFileSystem& fs, string file_name, int dir_inode) {
 	// 申请一个inode
@@ -159,7 +159,7 @@ int CNamei::open_file(CFileSystem& fs, string file_name, int dir_inode) {
 	strncpy(dir_entry.d_name, file_name.c_str(), FILENAME_LENGTH);
 
     // TODO 这里应该另外写一个函数，负责为i结点分配block（如果原空间不够的情况下），因为该申请到的i结点没有为其分配block
-	if(fs.inodes[dir_inode].i_size == 0) {
+	if (fs.inodes[dir_inode].i_size == 0) {
 		// 说明这是一个之前没有内容的i结点，所以这里还要负责为它申请一个block存储空间
 		fs.inodes[dir_inode].i_zone[0] = new_block(fs);
 	}
@@ -183,9 +183,12 @@ int CNamei::open_file(CFileSystem& fs, string file_name, int dir_inode) {
 }
 
 // TODO 这只是个demo，所以非常不完整。这个函数只能往一个空白文件里写入最多1024个字节（即count<=1024）
+extern int file_write(CFileSystem &fs, CInode *inode, SFILE *filp, char *buf, int count);
+struct SFILE;
 int CNamei::write_file(CFileSystem& fs, int fd, char buf[], int count) {
+	/*
 	// 如果文件内容是空白的，则分配block。由上面的注释知，这是肯定的。
-	if(fs.inodes[fd].i_size == 0) 
+	if (fs.inodes[fd].i_size == 0) 
 		fs.inodes[fd].i_zone[0] = new_block(fs);
 
 	for (int i = 0; i < count; i++) {
@@ -195,4 +198,13 @@ int CNamei::write_file(CFileSystem& fs, int fd, char buf[], int count) {
 	fs.inodes[fd].i_size += count;
 	// 返回写入的字节数
 	return count;
+	*/
+	SFILE filp;
+	filp.f_flags = 0x01; // APPEND
+	filp.f_pos = 0;
+	return file_write(fs, &(fs.inodes[fd]), &filp, buf, count);
+}
+
+int CNamei::read_file(CFileSystem& fs, int fd, char buf[], int count) {
+
 }

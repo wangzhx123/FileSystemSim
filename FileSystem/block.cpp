@@ -25,7 +25,10 @@ int CBlock::b_get(int b_pos) {
 	// 如果该块为空，返回-1
 	if (this->size == 0)
 		return -1;
-	return b_capacity[b_pos];
+	if (b_pos <= this->size)
+		return b_capacity[b_pos];
+	else
+		return -1; // 说明读出的是文件内容不存在的字节
 }
 
 DIR_ENTRY CBlock::b_get_dir_entry(int b_pos) {
@@ -60,4 +63,29 @@ int CBlock::b_put_dir_entry(DIR_ENTRY dir_entry, int b_pos) {
 	int bytes_read = 4 + FILENAME_LENGTH;
 	this->size += bytes_read;
 	return bytes_read;
+}
+
+int CBlock::b_put_index_entry(INDEX_ENTRY index_entry, int b_pos) {
+	if (b_pos == SIZE_PER_BLOCK)
+		return -1;
+
+	// 写入索引号的高8位
+	b_capacity[b_pos] = (char) index_entry.high;
+	b_pos ++;
+	// 再写入索引号的低8位
+	b_capacity[b_pos] = (char) index_entry.low;
+
+	int bytes_read = 2;
+	this->size += bytes_read;
+	return bytes_read;
+}
+INDEX_ENTRY CBlock::b_get_index_entry(int b_pos) {
+	// 如果块中剩下的字节数不足2字节（一个索引项长度）
+	if (SIZE_PER_BLOCK - b_pos < 2) 
+		exit(-1); // because this should never happen!
+
+	INDEX_ENTRY i_temp;
+	i_temp.high = this->b_get(b_pos);
+	i_temp.high = this->b_get(b_pos + 1);
+	return i_temp;
 }

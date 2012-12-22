@@ -15,6 +15,10 @@ CFileSystem::CFileSystem() {
 	this->inodes[1].i_type = 1;
 	this->inodes[1].i_nlinks = 1;
 	this->inodes[1].i_size = 0;
+
+	// 磁盘位都设为0
+	memset(this->blocks, 0 , sizeof(this->blocks));
+
 }
 
 CFileSystem::~CFileSystem() {

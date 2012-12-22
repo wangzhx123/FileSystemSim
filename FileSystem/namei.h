@@ -21,5 +21,6 @@ public:
 	//--TODO 下面是读文件函数，这只是个demo程序，所以把它放在这个类里，不然应该另外写一个模块--//
 	// 将buf里的内容，写入以file_inode为i结点号的文件block中
 	int write_file(CFileSystem& fs, int file_inode, char buf[], int count);
+	int read_file(CFileSystem& fs, int file_inode, char buf[], int count);
 };
 

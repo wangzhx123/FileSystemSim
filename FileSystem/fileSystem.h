@@ -3,11 +3,13 @@
 #include "block.h"
 #include "inode.h"
 #include "namei.h"
+#include "bitmaps.h"
 #include "structsANDconstants.h"
 
 class CInode;
 class CBlock;
 class CNamei;
+class CBitmaps;
 
 class CFileSystem
 {
@@ -17,7 +19,9 @@ public:
 	std::bitset<BLOCK_NUM> map_block; // 磁盘逻辑块位图 1024 
 	CInode inodes[INODE_NUM]; // i结点块 512*sizeof(CInode)
 	CBlock blocks[BLOCK_NUM]; // 磁盘逻辑块 1024*1024B
+	// 工具类
 	CNamei *namei;
+	CBitmaps *bitmaps;
 public:
 	CFileSystem(void);
 	~CFileSystem(void);

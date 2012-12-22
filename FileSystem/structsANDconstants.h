@@ -17,3 +17,8 @@ struct S_BLOCK {
 	int s_max_size;
 	short s_magic;
 }; // 超级块结构体
+
+struct SFILE {
+	int f_pos; // 文件读写位置偏移量
+	char f_flags; // 文件读写模式
+};
