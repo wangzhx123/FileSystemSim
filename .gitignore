@@ -2,6 +2,10 @@
 *.slo
 *.lo
 *.o
+# Microsoft Visual Studio Files
+*.obj
+*.ilk
+*pdb
 
 # Compiled Dynamic libraries
 *.so

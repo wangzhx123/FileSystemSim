@@ -3,13 +3,17 @@
 
 // 逻辑块中可能放的是结构化的数据，包括目录项DIR_ENTRY或者是INDEX_ENTRY（例如二级块中的索引值）
 struct DIR_ENTRY {
-	unsigned short d_inode; // 4B
-	char d_name[FILENAME_LENGTH]; // 12B
+	unsigned short d_inode; // 2B
+	char d_name[FILENAME_LENGTH]; // 14B
 };
 struct INDEX_ENTRY {
 	// as big_endian, totally 2 Bytes for indices
 	char high; // if high=0, then the biggest index only bound to 255 highest
 	char low;
+public:
+	short get_index() {
+		return low + (high << 8);
+	}
 };
 
 class CBlock
@@ -23,7 +27,7 @@ public:
 	int b_put_dir_entry(DIR_ENTRY dir_entry, int b_pos);
 	DIR_ENTRY b_get_dir_entry(int b_pos);
 	int b_put_index_entry(INDEX_ENTRY index_entry, int b_pos);
-	INDEX_ENTRY b_get_index_entry(int b_pos);
+	INDEX_ENTRY b_get_index_entry(int file_block);
 
 public:
 	static const size_t SIZE_PER_BLOCK = 1024;

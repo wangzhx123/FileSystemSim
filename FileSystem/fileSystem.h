@@ -32,4 +32,5 @@ public:
 	// 返回文件描述符fd（实际就是文件i结点号）
 	int open(char *file_path);
 	int write(int fd, char buf[], int count);
+	int read(int fd, char buf[], int count);
 };

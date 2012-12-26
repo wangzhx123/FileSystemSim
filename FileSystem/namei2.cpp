@@ -19,11 +19,13 @@ static int _bmap(CFileSystem &fs, int inode_num, int file_block, bool create) {
 		return 0;
 	}
 
+	int temp;
+
 	// CInode inode = fs.inodes[inode_num];
 	// 说明待查找的逻辑块号在一级块中
 	if (file_block < 7) {
-		// 如果相关块未分配，且create为TRUE，则新分配一个数据块
-		if (create && !fs.inodes[inode_num].i_zone[file_block]) {
+		// 如果相关块未分配，且create为true，则新分配一个数据块
+		if (!fs.inodes[inode_num].i_zone[file_block] && create) {
 			if (fs.inodes[inode_num].i_zone[file_block] = fs.bitmaps->new_block(fs))
 				return fs.inodes[inode_num].i_zone[file_block];
 			else { 
@@ -31,25 +33,24 @@ static int _bmap(CFileSystem &fs, int inode_num, int file_block, bool create) {
 				return 0;
 			}
 		}
-		// 如果create为false，则返回0表示未在磁盘上找到相应的逻辑块
+		// 如果i_zone数组中已有逻辑块号记录且create为false，则返回记录号
 		else
-			return 0;
+			return fs.inodes[inode_num].i_zone[file_block];
 	}
 	// 如果待查找的逻辑块号在二级块中
 	file_block -= 7;
 	if (file_block < 512) {
 		// 如果i_zone[7]尚未使用
-		if (create && !fs.inodes[inode_num].i_zone[7]) {
+		if (!fs.inodes[inode_num].i_zone[7] && create) {
 			if (fs.inodes[inode_num].i_zone[7] = fs.bitmaps->new_block(fs)) {
 				// 如果分配成功，则读取二级块内容以写入分配的逻辑块号
 				INDEX_ENTRY index_entry;
-				// TODO 这里只写入low，所以最大不能超过255(not any more...but need to be tested)
-				unsigned int temp;
+				short temp;
 				if (temp = fs.bitmaps->new_block(fs)) {
-					index_entry.low = temp & 0x0000FFFF;
-					index_entry.high = temp >> 8;
+					index_entry.high = temp / 0x0100;
+					index_entry.low = temp % 0x0100;
 					fs.blocks[fs.inodes[inode_num].i_zone[7]].b_put_index_entry(index_entry, 0);
-					return (int)index_entry.low;
+					return index_entry.get_index();
 				}
 				else { 
 					cerr << "ERROR: fail to allocate a disk block!" << endl;
@@ -61,28 +62,35 @@ static int _bmap(CFileSystem &fs, int inode_num, int file_block, bool create) {
 				return 0; 
 			}
 		}
-		// 如果create为false，则返回0表示未在磁盘上找到相应的逻辑块
-		else
-			return 0;
+		// 如果i_zone数组中已有二级块逻辑块号记录且create为false，则再从中获取二级块，从中读取逻辑块号
+		else {
+			// 也可能是i_zone数组中不存在记录且create为false
+			if((temp = fs.inodes[inode_num].i_zone[7]) == 0) {
+				return 0;
+			}
+			return fs.blocks[temp].b_get_index_entry(file_block).get_index();
+		}
 	}
 
 	// 说明待查找的逻辑块号在三级块中
 	// 为了简洁，这里省略了一些错误调试代码
 	file_block -= 512;
 	if (file_block < 512*512) {
-		if (create && !fs.inodes[inode_num].i_zone[8]) {
+		if (!fs.inodes[inode_num].i_zone[8] && create) {
 			if (fs.inodes[inode_num].i_zone[8] = fs.bitmaps->new_block(fs)) {
 				// 如果分配成功，则读取三级块内容以写入分配的二级块号
 				INDEX_ENTRY index_entry2;
-				// TODO 这里只写入low，所以最大不能超过255
-				if (index_entry2.low = fs.bitmaps->new_block(fs)) {
+				if (temp = fs.bitmaps->new_block(fs)) {
+					index_entry2.high = temp / 0x0100;
+					index_entry2.low = temp % 0x0100;
 					fs.blocks[fs.inodes[inode_num].i_zone[8]].b_put_index_entry(index_entry2, 0);
 					// 如果分配成功，则读取二级块内容以写入分配的一级（直接）逻辑块号
 					INDEX_ENTRY index_entry1;
-					// TODO 这里只写入low，所以最大不能超过255
-					if (index_entry1.low = fs.bitmaps->new_block(fs)) {
-						fs.blocks[(int)index_entry2.low].b_put_index_entry(index_entry1, 0);
-						return (int)index_entry1.low;
+					if (temp = fs.bitmaps->new_block(fs)) {
+						index_entry1.high = temp / 0x0100;
+						index_entry1.low = temp % 0x0100;
+						fs.blocks[index_entry2.get_index()].b_put_index_entry(index_entry1, 0);
+						return (int)index_entry1.get_index();
 					}
 				}
 			}
@@ -91,21 +99,28 @@ static int _bmap(CFileSystem &fs, int inode_num, int file_block, bool create) {
 				return 0; 
 			}
 		}
-		// 如果create为false，则返回0表示未在磁盘上找到相应的逻辑块
-		else
-			return 0;
+		// 如果i_zone数组中已有三级块逻辑块号记录且create为false，则再从中获取三级块
+		// 再从中获取二级块号，最后从二级块中读取一级块的逻辑块号
+		// TODO 也可能是i_zone数组中不存在记录且create为false
+		else {
+			// 也可能是i_zone数组中不存在记录且create为false
+			if((temp = fs.inodes[inode_num].i_zone[8]) == 0) {
+				return 0;
+			}
+			temp = fs.blocks[temp].b_get_index_entry(file_block / 512).get_index();
+			return fs.blocks[temp].b_get_index_entry(file_block % 512).get_index();
+		}
 	}
-	// will never come to this point
+	// 如果没有找到，且create为false
 	return 0;
 }
 
-static int create_block(CFileSystem &fs, int inode_num, int file_block) {
+int create_block(CFileSystem &fs, int inode_num, int file_block) {
 	return _bmap(fs, inode_num, file_block, true);
 }
-static int bmap(CFileSystem &fs, int inode_num, int file_block) {
+int bmap(CFileSystem &fs, int inode_num, int file_block) {
 	return _bmap(fs, inode_num, file_block, false);
 }
-
 
 // TODO 
 #define O_APPEND 0x01
@@ -157,7 +172,7 @@ inline int find_min(int a, int b) {
 	else return b;
 }
 // TODO
-int file_read(CFileSystem &fs, CInode *inode, FILE *filp, char *buf, int count) {
+int file_read(CFileSystem &fs, CInode *inode, SFILE *filp, char *buf, int count) {
 	int left;
 	int chars, offset, block_num, byte_read;
 	if ((left = count) <= 0)
@@ -165,7 +180,7 @@ int file_read(CFileSystem &fs, CInode *inode, FILE *filp, char *buf, int count) 
 
 	// 循环读出数据，直到读出请求的字节数或者没有数据了为止
 	while (left) {
-		if (offset = bmap(fs, inode, (filp->f_pos)/BLOCK_SIZE) {
+		if (offset = bmap(fs, inode->i_num, (filp->f_pos)/CBlock::SIZE_PER_BLOCK)) {
 			// 读出相应的逻辑块
 			block_num = offset;
 			// 再将offset设置为文件读写位置的块内偏移
@@ -178,9 +193,10 @@ int file_read(CFileSystem &fs, CInode *inode, FILE *filp, char *buf, int count) 
 			left -= chars;
 			// 将数据块请求的字节读出到buf中
 			while (chars-- > 0) {
-				if((byte_read = fs.blocks[block_num].b_get(offset++)) != -1)
-					*(buf++) = (char)read_byte;
-				else 
+				if((byte_read = fs.blocks[block_num].b_get(offset++)) != -1) {
+					*(buf++) = (char)byte_read;
+				}
+				else {
 					// 如果数据块中的数据只有部分可读但不足count字节，则buf后面就用0填充
 					// TODO but lack efficiency here...
 					*(buf++) = 0;
@@ -192,6 +208,5 @@ int file_read(CFileSystem &fs, CInode *inode, FILE *filp, char *buf, int count) 
 			return (count-left) ? (count-left) : -1;
 		}
 	}
-
 	return (count-left) ? (count-left) : -1;
 }

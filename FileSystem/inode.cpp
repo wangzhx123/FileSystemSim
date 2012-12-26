@@ -22,7 +22,8 @@ CInode* CInode::iget(CFileSystem& fs, size_t inode_num) {
 	return &(fs.inodes[inode_num]);
 }
 
+// 这个函数貌似没用到过。。都直接写了。。以后要改用这个函数实现保存inode的功能
 STATUS CInode::iput(CFileSystem& fs, CInode &inode) {
-	fs.inodes[inode.i_num] = inode; // TODO
+	fs.inodes[inode.i_num] = inode; 
 	return SUCCESS;
 }

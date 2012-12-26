@@ -15,6 +15,7 @@ CFileSystem::CFileSystem() {
 	this->inodes[1].i_type = 1;
 	this->inodes[1].i_nlinks = 1;
 	this->inodes[1].i_size = 0;
+	//this->inodes[1].i_zone[0] = this->bitmaps->new_inode(*this)->i_num;
 
 	// 磁盘位都设为0
 	memset(this->blocks, 0 , sizeof(this->blocks));
@@ -27,9 +28,9 @@ CFileSystem::~CFileSystem() {
 
 int CFileSystem::mkdir(std::string dir, int dir_inode) {
 	// 如果没有找到，就直接创建一个
-	int dir_inode_found = namei->find_dir_entry(*this, dir, dir_inode);
+	int dir_inode_found = namei->find_entry(*this, dir, dir_inode);
 	if (dir_inode_found == 0) {
-		return namei->new_dir_entry(*this, dir, dir_inode);
+		return namei->add_entry(*this, dir, dir_inode);
 	} else {
 		return dir_inode_found;
 	}
@@ -44,10 +45,10 @@ int CFileSystem::mkdir2(const char *dir_path) {
 	int base_dir_inode = 1; 
 	while(pch != NULL) {
 		// 从根目录开始找
-		dir_inode_found = namei->find_dir_entry(*this, string(pch), base_dir_inode);
+		dir_inode_found = namei->find_entry(*this, string(pch), base_dir_inode);
 		if (dir_inode_found == 0) {
 			// 如果没有相应的目录，就马上建立一个
-			base_dir_inode = namei->new_dir_entry(*this, string(pch), base_dir_inode);
+			base_dir_inode = namei->add_entry(*this, string(pch), base_dir_inode);
 		} else {
 			// 如果找到了相应的目录，就更新当前查找目录，继续查找
 			base_dir_inode = dir_inode_found;
@@ -76,8 +77,9 @@ int CFileSystem::open(char *file_path) {
 	
 	// 查找目录，如果没有就新建一个，返回目录号
 	int dir_inode = mkdir2(dir);
-	// 查找文件，如果没有就新建一个空白文件，最后返回文件i结点号
-	int file_inode = namei->find_file(*this, string(file_name), dir_inode);
+	// 查找文件，否则返回文件i结点号
+	int file_inode = namei->find_entry(*this, string(file_name), dir_inode);
+    // 如果没有就新建一个空白文件
 	if (file_inode == 0)
 		return namei->open_file(*this, string(file_name), dir_inode);
 	else
@@ -86,4 +88,7 @@ int CFileSystem::open(char *file_path) {
 
 int CFileSystem::write(int fd, char buf[], int count) {
 	return namei->write_file(*this, fd, buf, count);
+}
+int CFileSystem::read(int fd, char buf[], int count) {
+	return namei->read_file(*this, fd, buf, count);
 }

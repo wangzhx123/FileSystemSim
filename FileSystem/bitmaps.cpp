@@ -43,7 +43,7 @@ STATUS CBitmaps::free_inode(CFileSystem& fs, CInode &inode) {
 		return FAILURE; // 该i结点原来就不存在，表示出错
 	
 	fs.map_inode.reset(inode.i_num);
-	// TODO 这里还要加上释放i_zone[]数组里的各个block的代码
+	// TODO 这里还要加上释放i_zone[]数组里的各个block的代码,即一个truncate函数
 	return SUCCESS;
 }
 
